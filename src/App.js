@@ -1,123 +1,152 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ChevronRight, ChevronDown, Download, GitBranch, Clock, File, Folder, Share2, Eye } from 'lucide-react';
+import { ChevronRight, ChevronDown, Download, GitBranch, Clock, File, Folder, Share2, Eye, Plus, Search, Calendar, User } from 'lucide-react';
 import * as THREE from 'three';
 
-// Mock data for demonstration
-const mockProject = {
-  id: "proj-1",
-  name: "Robotic Arm Assembly",
-  description: "6-DOF robotic arm for manufacturing automation",
-  branches: [
-    { id: "main", name: "main", commitCount: 12, color: "#3b82f6" },
-    { id: "lightweight", name: "lightweight", commitCount: 8, color: "#10b981" },
-    { id: "extended", name: "extended", commitCount: 5, color: "#f59e0b" }
-  ],
-  currentBranch: "main"
-};
-
-// Branch tree structure showing how commits relate - positioned like a Git network graph
-const branchTree = [
+// Mock data for multiple projects
+const mockProjects = [
   {
-    id: "commit-1",
-    message: "Initial robotic arm concept",
-    timestamp: "2025-08-01T09:00:00Z",
-    author: "John Smith",
-    branch: "main",
-    x: 50,
-    y: 50,
-    parents: []
+    id: "proj-1",
+    name: "Robotic Arm Assembly",
+    description: "6-DOF robotic arm for manufacturing automation",
+    lastModified: "2025-08-10T14:30:00Z",
+    branches: [
+      { id: "main", name: "main", commitCount: 8, color: "#3b82f6" },
+      { id: "lightweight", name: "lightweight", commitCount: 2, color: "#10b981" },
+      { id: "extended", name: "extended", commitCount: 2, color: "#f59e0b" }
+    ],
+    totalCommits: 12,
+    contributors: ["John Smith", "Sarah Johnson", "Mike Chen"]
   },
   {
-    id: "commit-2", 
-    message: "Added base plate design",
-    timestamp: "2025-08-02T11:30:00Z",
-    author: "Sarah Johnson", 
-    branch: "main",
-    x: 150,
-    y: 50,
-    parents: ["commit-1"]
+    id: "proj-2", 
+    name: "Conveyor Belt System",
+    description: "Automated conveyor system for warehouse operations",
+    lastModified: "2025-08-08T16:20:00Z",
+    branches: [
+      { id: "main", name: "main", commitCount: 15, color: "#3b82f6" },
+      { id: "speed-optimization", name: "speed-optimization", commitCount: 4, color: "#8b5cf6" }
+    ],
+    totalCommits: 19,
+    contributors: ["Alice Brown", "Bob Wilson"]
   },
   {
-    id: "commit-3",
-    message: "Integrated motor mount system",
-    timestamp: "2025-08-03T14:15:00Z",
-    author: "Mike Chen",
-    branch: "main", 
-    x: 250,
-    y: 50,
-    parents: ["commit-2"]
-  },
-  {
-    id: "commit-4",
-    message: "Added arm segments with joints",
-    timestamp: "2025-08-04T16:45:00Z",
-    author: "John Smith",
-    branch: "main",
-    x: 350,
-    y: 50,
-    parents: ["commit-3"]
-  },
-  {
-    id: "commit-5",
-    message: "Lightweight materials exploration",
-    timestamp: "2025-08-05T10:20:00Z", 
-    author: "Sarah Johnson",
-    branch: "lightweight",
-    x: 450,
-    y: 120,
-    parents: ["commit-4"]
-  },
-  {
-    id: "commit-6",
-    message: "Extended reach prototype", 
-    timestamp: "2025-08-05T15:30:00Z",
-    author: "Mike Chen",
-    branch: "extended",
-    x: 450,
-    y: 180,
-    parents: ["commit-4"]
-  },
-  {
-    id: "commit-7",
-    message: "Optimized joint bearings",
-    timestamp: "2025-08-09T10:15:00Z",
-    author: "Sarah Johnson",
-    branch: "main",
-    x: 450,
-    y: 50,
-    parents: ["commit-4"]
-  },
-  {
-    id: "commit-8",
-    message: "Added gripper mechanism",
-    timestamp: "2025-08-10T14:30:00Z",
-    author: "John Smith", 
-    branch: "main",
-    x: 550,
-    y: 50,
-    parents: ["commit-7"]
-  },
-  {
-    id: "commit-9",
-    message: "Carbon fiber arm segments",
-    timestamp: "2025-08-11T09:00:00Z",
-    author: "Sarah Johnson", 
-    branch: "lightweight",
-    x: 550,
-    y: 120,
-    parents: ["commit-5"]
-  },
-  {
-    id: "commit-10",
-    message: "Extended base for stability",
-    timestamp: "2025-08-11T14:00:00Z",
-    author: "Mike Chen", 
-    branch: "extended",
-    x: 550,
-    y: 180,
-    parents: ["commit-6"]
+    id: "proj-3",
+    name: "Hydraulic Press Design",
+    description: "Industrial hydraulic press for metal forming",
+    lastModified: "2025-08-05T11:45:00Z",
+    branches: [
+      { id: "main", name: "main", commitCount: 22, color: "#3b82f6" }
+    ],
+    totalCommits: 22,
+    contributors: ["Carol Davis", "David Lee", "Eva Martinez", "Frank Taylor"]
   }
 ];
+
+// Project-specific commit data
+const projectCommitData = {
+  "proj-1": [
+    {
+      id: "commit-1",
+      message: "Initial robotic arm concept",
+      timestamp: "2025-08-01T09:00:00Z",
+      author: "John Smith",
+      branch: "main",
+      x: 50,
+      y: 50,
+      parents: []
+    },
+    {
+      id: "commit-2", 
+      message: "Added base plate design",
+      timestamp: "2025-08-02T11:30:00Z",
+      author: "Sarah Johnson", 
+      branch: "main",
+      x: 150,
+      y: 50,
+      parents: ["commit-1"]
+    },
+    {
+      id: "commit-3",
+      message: "Integrated motor mount system",
+      timestamp: "2025-08-03T14:15:00Z",
+      author: "Mike Chen",
+      branch: "main", 
+      x: 250,
+      y: 50,
+      parents: ["commit-2"]
+    },
+    {
+      id: "commit-4",
+      message: "Added arm segments with joints",
+      timestamp: "2025-08-04T16:45:00Z",
+      author: "John Smith",
+      branch: "main",
+      x: 350,
+      y: 50,
+      parents: ["commit-3"]
+    },
+    {
+      id: "commit-5",
+      message: "Lightweight materials exploration",
+      timestamp: "2025-08-05T10:20:00Z", 
+      author: "Sarah Johnson",
+      branch: "lightweight",
+      x: 450,
+      y: 120,
+      parents: ["commit-4"]
+    },
+    {
+      id: "commit-6",
+      message: "Extended reach prototype", 
+      timestamp: "2025-08-05T15:30:00Z",
+      author: "Mike Chen",
+      branch: "extended",
+      x: 450,
+      y: 180,
+      parents: ["commit-4"]
+    },
+    {
+      id: "commit-7",
+      message: "Optimized joint bearings",
+      timestamp: "2025-08-09T10:15:00Z",
+      author: "Sarah Johnson",
+      branch: "main",
+      x: 450,
+      y: 50,
+      parents: ["commit-4"]
+    },
+    {
+      id: "commit-8",
+      message: "Added gripper mechanism",
+      timestamp: "2025-08-10T14:30:00Z",
+      author: "John Smith", 
+      branch: "main",
+      x: 550,
+      y: 50,
+      parents: ["commit-7"]
+    },
+    {
+      id: "commit-9",
+      message: "Carbon fiber arm segments",
+      timestamp: "2025-08-11T09:00:00Z",
+      author: "Sarah Johnson", 
+      branch: "lightweight",
+      x: 550,
+      y: 120,
+      parents: ["commit-5"]
+    },
+    {
+      id: "commit-10",
+      message: "Extended base for stability",
+      timestamp: "2025-08-11T14:00:00Z",
+      author: "Mike Chen", 
+      branch: "extended",
+      x: 550,
+      y: 180,
+      parents: ["commit-6"]
+    }
+  ]
+};
 
 const mockDesignTree = {
   "commit-8": {
@@ -150,30 +179,6 @@ const mockDesignTree = {
           { name: "Gripper_Jaw_Left.SLDPRT", type: "part", size: "1.2 MB" },
           { name: "Gripper_Jaw_Right.SLDPRT", type: "part", size: "1.2 MB" },
           { name: "Pneumatic_Cylinder.SLDPRT", type: "part", size: "2.1 MB" }
-        ]
-      }
-    ]
-  },
-  "commit-7": {
-    name: "RoboticArm_Assembly.SLDASM",
-    type: "assembly",
-    children: [
-      {
-        name: "Base_Assembly.SLDASM", 
-        type: "assembly",
-        children: [
-          { name: "Base_Plate.SLDPRT", type: "part", size: "2.4 MB" },
-          { name: "Motor_Mount.SLDPRT", type: "part", size: "1.8 MB" },
-          { name: "Base_Motor.SLDPRT", type: "part", size: "3.2 MB" }
-        ]
-      },
-      {
-        name: "Arm_Segments.SLDASM",
-        type: "assembly",
-        children: [
-          { name: "Lower_Arm.SLDPRT", type: "part", size: "4.1 MB" },
-          { name: "Upper_Arm.SLDPRT", type: "part", size: "3.8 MB" },
-          { name: "Joint_Bearing_Optimized.SLDPRT", type: "part", size: "0.9 MB" }
         ]
       }
     ]
@@ -460,6 +465,9 @@ const GitNetworkGraph = ({ commits, selectedCommit, onSelectCommit, branches }) 
                   {commit.message.length > 20 ? commit.message.substring(0, 20) + '...' : commit.message}
                 </text>
               )}
+              
+              {/* Commit message on hover */}
+              <title>{commit.message}</title>
             </g>
           );
         })}
@@ -543,8 +551,128 @@ const CommitDetailPanel = ({ commit, onDownload, onFork }) => {
   );
 };
 
-export default function SolidWorksPDM() {
-  const [selectedCommit, setSelectedCommit] = useState("commit-8");
+const ProjectCard = ({ project, onOpen }) => {
+  return (
+    <div 
+      className="bg-white border rounded-lg p-6 hover:shadow-lg transition-shadow cursor-pointer"
+      onClick={() => onOpen(project.id)}
+    >
+      <div className="flex items-start justify-between mb-4">
+        <div>
+          <h3 className="text-lg font-semibold text-gray-900">{project.name}</h3>
+          <p className="text-sm text-gray-600 mt-1">{project.description}</p>
+        </div>
+        <div className="flex items-center text-sm text-gray-500">
+          <Calendar className="w-4 h-4 mr-1" />
+          <span>{new Date(project.lastModified).toLocaleDateString()}</span>
+        </div>
+      </div>
+      
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-4 text-sm text-gray-600">
+          <div className="flex items-center">
+            <GitBranch className="w-4 h-4 mr-1" />
+            <span>{project.branches.length} branches</span>
+          </div>
+          <div className="flex items-center">
+            <File className="w-4 h-4 mr-1" />
+            <span>{project.totalCommits} commits</span>
+          </div>
+          <div className="flex items-center">
+            <User className="w-4 h-4 mr-1" />
+            <span>{project.contributors.length} contributors</span>
+          </div>
+        </div>
+        
+        <div className="flex space-x-1">
+          {project.branches.map(branch => (
+            <div 
+              key={branch.id}
+              className="w-3 h-3 rounded-full"
+              style={{ backgroundColor: branch.color }}
+              title={`${branch.name}: ${branch.commitCount} commits`}
+            />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const HomePage = ({ projects, onOpenProject, onCreateProject }) => {
+  const [searchTerm, setSearchTerm] = useState('');
+  
+  const filteredProjects = projects.filter(project =>
+    project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    project.description.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+  
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <div className="bg-white border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
+            <div>
+              <h1 className="text-xl font-semibold text-gray-900">SolidWorks PDM</h1>
+              <p className="text-sm text-gray-600">GitHub for CAD Files</p>
+            </div>
+            <button 
+              onClick={onCreateProject}
+              className="flex items-center px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              New Project
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Search and filters */}
+        <div className="mb-8">
+          <div className="relative max-w-md">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+            <input
+              type="text"
+              placeholder="Search projects..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+        </div>
+
+        {/* Projects grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredProjects.map(project => (
+            <ProjectCard 
+              key={project.id}
+              project={project}
+              onOpen={onOpenProject}
+            />
+          ))}
+        </div>
+
+        {filteredProjects.length === 0 && (
+          <div className="text-center py-12">
+            <Folder className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+            <p className="text-gray-500">No projects found</p>
+            <button 
+              onClick={onCreateProject}
+              className="mt-4 text-blue-600 hover:text-blue-800 underline"
+            >
+              Create your first project
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+const ProjectView = ({ project, commits, onBack }) => {
+  const [selectedCommit, setSelectedCommit] = useState(commits[commits.length - 1]?.id || "");
   const [expandedNodes, setExpandedNodes] = useState({"RoboticArm_Assembly.SLDASM": true});
   const [activeTab, setActiveTab] = useState('history');
 
@@ -558,7 +686,7 @@ export default function SolidWorksPDM() {
   };
   
   const handleDownload = (node, path) => {
-    alert(`Downloading: ${node.name}\nPath: ${path}\nSize: ${node.size || 'N/A'}`);
+    alert(`Downloading: ${node}\nPath: ${path}\nCommit: ${selectedCommit}`);
   };
   
   const handleFork = (path) => {
@@ -569,7 +697,7 @@ export default function SolidWorksPDM() {
   };
 
   const handleShare = () => {
-    const url = `${window.location.origin}/project/${mockProject.id}/commit/${selectedCommit}`;
+    const url = `${window.location.origin}/project/${project.id}/commit/${selectedCommit}`;
     navigator.clipboard.writeText(url);
     alert(`Share link copied to clipboard:\n${url}`);
   };
@@ -580,26 +708,25 @@ export default function SolidWorksPDM() {
       <div className="bg-white border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
-            <div>
-              <h1 className="text-xl font-semibold text-gray-900">{mockProject.name}</h1>
-              <p className="text-sm text-gray-600">{mockProject.description}</p>
-            </div>
-            <div className="flex items-center space-x-4">
-              <select className="border border-gray-300 rounded px-3 py-1 text-sm">
-                {mockProject.branches.map(branch => (
-                  <option key={branch.id} value={branch.id}>
-                    {branch.name} ({branch.commitCount} commits)
-                  </option>
-                ))}
-              </select>
+            <div className="flex items-center">
               <button 
-                onClick={handleShare}
-                className="flex items-center px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm"
+                onClick={onBack}
+                className="mr-4 text-gray-600 hover:text-gray-900"
               >
-                <Share2 className="w-4 h-4 mr-1" />
-                Share
+                ← Back
               </button>
+              <div>
+                <h1 className="text-xl font-semibold text-gray-900">{project.name}</h1>
+                <p className="text-sm text-gray-600">{project.description}</p>
+              </div>
             </div>
+            <button 
+              onClick={handleShare}
+              className="flex items-center px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm"
+            >
+              <Share2 className="w-4 h-4 mr-1" />
+              Share
+            </button>
           </div>
         </div>
       </div>
@@ -660,17 +787,17 @@ export default function SolidWorksPDM() {
                   {/* Network Graph - takes up 2/3 on large screens */}
                   <div className="lg:col-span-2">
                     <GitNetworkGraph 
-                      commits={branchTree}
+                      commits={commits}
                       selectedCommit={selectedCommit}
                       onSelectCommit={setSelectedCommit}
-                      branches={mockProject.branches}
+                      branches={project.branches}
                     />
                   </div>
                   
                   {/* Detail Panel - takes up 1/3 on large screens */}
                   <div className="lg:col-span-1">
                     <CommitDetailPanel 
-                      commit={branchTree.find(c => c.id === selectedCommit)}
+                      commit={commits.find(c => c.id === selectedCommit)}
                       onDownload={handleDownload}
                       onFork={handleFork}
                     />
@@ -683,11 +810,11 @@ export default function SolidWorksPDM() {
               <div>
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-semibold text-gray-900">
-                    {branchTree.find(c => c.id === selectedCommit)?.message || "Design Tree"}
+                    {commits.find(c => c.id === selectedCommit)?.message || "Design Tree"}
                   </h3>
                   <div className="flex items-center text-sm text-gray-500">
                     <Clock className="w-4 h-4 mr-1" />
-                    {new Date(branchTree.find(c => c.id === selectedCommit)?.timestamp).toLocaleString()}
+                    {new Date(commits.find(c => c.id === selectedCommit)?.timestamp).toLocaleString()}
                   </div>
                 </div>
                 
@@ -732,4 +859,47 @@ export default function SolidWorksPDM() {
       </div>
     </div>
   );
+};
+
+export default function SolidWorksPDM() {
+  const [currentView, setCurrentView] = useState('home'); // 'home' or 'project'
+  const [selectedProject, setSelectedProject] = useState(null);
+
+  const handleOpenProject = (projectId) => {
+    const project = mockProjects.find(p => p.id === projectId);
+    setSelectedProject(project);
+    setCurrentView('project');
+  };
+
+  const handleBackToHome = () => {
+    setCurrentView('home');
+    setSelectedProject(null);
+  };
+
+  const handleCreateProject = () => {
+    alert('Create new project - this will connect to SolidWorks plugin!');
+  };
+
+  if (currentView === 'home') {
+    return (
+      <HomePage 
+        projects={mockProjects}
+        onOpenProject={handleOpenProject}
+        onCreateProject={handleCreateProject}
+      />
+    );
+  }
+
+  if (currentView === 'project' && selectedProject) {
+    const commits = projectCommitData[selectedProject.id] || [];
+    return (
+      <ProjectView 
+        project={selectedProject}
+        commits={commits}
+        onBack={handleBackToHome}
+      />
+    );
+  }
+
+  return null;
 }
