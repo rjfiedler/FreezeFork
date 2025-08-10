@@ -9,8 +9,8 @@ const mockProject = {
   description: "6-DOF robotic arm for manufacturing automation",
   branches: [
     { id: "main", name: "main", commitCount: 12, color: "#3b82f6" },
-    { id: "lightweight", name: "lightweight-version", commitCount: 8, color: "#10b981" },
-    { id: "extended", name: "extended-reach", commitCount: 5, color: "#f59e0b" }
+    { id: "lightweight", name: "lightweight", commitCount: 8, color: "#10b981" },
+    { id: "extended", name: "extended", commitCount: 5, color: "#f59e0b" }
   ],
   currentBranch: "main"
 };
@@ -248,12 +248,16 @@ const ThreeDPreview = ({ commitId }) => {
   const mountRef = useRef(null);
   const sceneRef = useRef(null);
   const rendererRef = useRef(null);
+  const animationRef = useRef(null);
   
   useEffect(() => {
     if (!mountRef.current) return;
     
     // Clean up previous scene
-    if (rendererRef.current) {
+    if (animationRef.current) {
+      cancelAnimationFrame(animationRef.current);
+    }
+    if (rendererRef.current && mountRef.current && mountRef.current.contains(rendererRef.current.domElement)) {
       mountRef.current.removeChild(rendererRef.current.domElement);
     }
     
@@ -340,20 +344,29 @@ const ThreeDPreview = ({ commitId }) => {
     
     // Animation loop
     const animate = () => {
-      requestAnimationFrame(animate);
+      animationRef.current = requestAnimationFrame(animate);
       roboticArm.rotation.y += 0.01;
       renderer.render(scene, camera);
     };
     
-    mountRef.current.appendChild(renderer.domElement);
-    animate();
+    if (mountRef.current) {
+      mountRef.current.appendChild(renderer.domElement);
+      animate();
+    }
     
     sceneRef.current = scene;
     rendererRef.current = renderer;
     
     return () => {
-      if (rendererRef.current && mountRef.current) {
-        mountRef.current.removeChild(rendererRef.current.domElement);
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
+      if (rendererRef.current && mountRef.current && mountRef.current.contains(rendererRef.current.domElement)) {
+        try {
+          mountRef.current.removeChild(rendererRef.current.domElement);
+        } catch (e) {
+          // Ignore if already removed
+        }
       }
     };
   }, [commitId]);
@@ -392,26 +405,26 @@ const GitNetworkGraph = ({ commits, selectedCommit, onSelectCommit, branches }) 
         className="border rounded-lg bg-white"
       >
         {/* Draw connection lines */}
-        {commits.map(commit => 
-          commit.parents.map(parentId => {
+        {commits.map(commit => {
+          return commit.parents.map(parentId => {
             const parent = commits.find(c => c.id === parentId);
             if (!parent) return null;
             
-            // Use parent's branch color for the connection line
-            const lineColor = branchColors[parent.branch];
+            // Use the commit's branch color for all connections
+            const lineColor = branchColors[commit.branch];
             
             return (
               <path
                 key={`${parentId}-${commit.id}`}
                 d={createPath(parent, commit)}
                 stroke={lineColor}
-                strokeWidth="3"
+                strokeWidth="4"
                 fill="none"
-                opacity="0.7"
+                opacity="0.9"
               />
             );
-          })
-        )}
+          });
+        })}
         
         {/* Draw commit nodes */}
         {commits.map(commit => {
@@ -426,29 +439,27 @@ const GitNetworkGraph = ({ commits, selectedCommit, onSelectCommit, branches }) 
                 cy={commit.y}
                 r={isSelected ? 14 : 10}
                 fill={branchColor}
-                stroke="#ffffff"
-                strokeWidth="3"
-                className="cursor-pointer transition-all duration-200 hover:stroke-gray-800"
+                stroke={isSelected ? "#ef4444" : "#ffffff"}
+                strokeWidth={isSelected ? "4" : "3"}
+                className="cursor-pointer transition-all duration-200 hover:stroke-gray-600"
                 onClick={() => onSelectCommit(commit.id)}
                 style={{
-                  filter: isSelected ? 'drop-shadow(0 4px 8px rgba(0,0,0,0.2))' : 'none'
+                  filter: isSelected ? 'drop-shadow(0 4px 8px rgba(239,68,68,0.3))' : 'none'
                 }}
               />
               
-              {/* Commit message on hover */}
-              <title>{commit.message}</title>
-              
-              {/* Branch label for branching points */}
-              {commit.parents.length === 0 || commit.branch !== commits.find(c => c.id === commit.parents[0])?.branch ? (
+              {/* Show commit message only for selected node */}
+              {isSelected && (
                 <text
                   x={commit.x}
-                  y={commit.y - 20}
+                  y={commit.y - 25}
                   textAnchor="middle"
-                  className="text-xs font-medium fill-gray-600"
+                  className="text-xs font-medium fill-gray-800 pointer-events-none"
+                  style={{ maxWidth: '150px' }}
                 >
-                  {commit.branch}
+                  {commit.message.length > 20 ? commit.message.substring(0, 20) + '...' : commit.message}
                 </text>
-              ) : null}
+              )}
             </g>
           );
         })}
