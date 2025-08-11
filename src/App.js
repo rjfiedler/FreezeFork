@@ -2,45 +2,76 @@ import React, { useState, useEffect, useRef } from 'react';
 import { ChevronRight, ChevronDown, Download, GitBranch, Clock, File, Folder, Share2, Eye, Plus, Search, Calendar, User } from 'lucide-react';
 import * as THREE from 'three';
 
-// Mock data for multiple projects
-const mockProjects = [
-  {
-    id: "proj-1",
-    name: "Robotic Arm Assembly",
-    description: "6-DOF robotic arm for manufacturing automation",
-    lastModified: "2025-08-10T14:30:00Z",
-    branches: [
-      { id: "main", name: "main", commitCount: 8, color: "#3b82f6" },
-      { id: "lightweight", name: "lightweight", commitCount: 2, color: "#10b981" },
-      { id: "extended", name: "extended", commitCount: 2, color: "#f59e0b" }
-    ],
-    totalCommits: 12,
-    contributors: ["John Smith", "Sarah Johnson", "Mike Chen"]
+// API Configuration
+const API_BASE_URL = 'https://freezefork.onrender.com/api/v1';
+
+// API Service
+const apiService = {
+  async getProjects() {
+    try {
+      console.log('Fetching projects from:', `${API_BASE_URL}/projects`);
+      const response = await fetch(`${API_BASE_URL}/projects`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      console.log('Projects loaded:', data);
+      return data;
+    } catch (error) {
+      console.error('API Error:', error);
+      throw error;
+    }
   },
-  {
-    id: "proj-2", 
-    name: "Conveyor Belt System",
-    description: "Automated conveyor system for warehouse operations",
-    lastModified: "2025-08-08T16:20:00Z",
-    branches: [
-      { id: "main", name: "main", commitCount: 15, color: "#3b82f6" },
-      { id: "speed-optimization", name: "speed-optimization", commitCount: 4, color: "#8b5cf6" }
-    ],
-    totalCommits: 19,
-    contributors: ["Alice Brown", "Bob Wilson"]
+  
+  async getProjectCommits(projectId) {
+    try {
+      console.log('Fetching commits for project:', projectId);
+      const response = await fetch(`${API_BASE_URL}/projects/${projectId}/commits`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      console.log('Commits loaded:', data);
+      return data;
+    } catch (error) {
+      console.error('API Error:', error);
+      throw error;
+    }
   },
-  {
-    id: "proj-3",
-    name: "Hydraulic Press Design",
-    description: "Industrial hydraulic press for metal forming",
-    lastModified: "2025-08-05T11:45:00Z",
-    branches: [
-      { id: "main", name: "main", commitCount: 22, color: "#3b82f6" }
-    ],
-    totalCommits: 22,
-    contributors: ["Carol Davis", "David Lee", "Eva Martinez", "Frank Taylor"]
+  
+  async createProject(projectData) {
+    try {
+      console.log('Creating project:', projectData);
+      const response = await fetch(`${API_BASE_URL}/projects`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(projectData)
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      console.log('Project created:', data);
+      return data;
+    } catch (error) {
+      console.error('API Error:', error);
+      throw error;
+    }
+  },
+
+  async healthCheck() {
+    try {
+      console.log('Checking API health...');
+      const response = await fetch(`${API_BASE_URL}/health`);
+      const data = await response.json();
+      console.log('Health check result:', data);
+      return data;
+    } catch (error) {
+      console.error('Health check failed:', error);
+      throw error;
+    }
   }
-];
+};
 
 // Project-specific commit data
 const projectCommitData = {
@@ -599,13 +630,24 @@ const ProjectCard = ({ project, onOpen }) => {
   );
 };
 
-const HomePage = ({ projects, onOpenProject, onCreateProject }) => {
+const HomePage = ({ projects, onOpenProject, onCreateProject, isLoading }) => {
   const [searchTerm, setSearchTerm] = useState('');
   
   const filteredProjects = projects.filter(project =>
     project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     project.description.toLowerCase().includes(searchTerm.toLowerCase())
   );
+  
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading projects...</p>
+        </div>
+      </div>
+    );
+  }
   
   return (
     <div className="min-h-screen bg-gray-50">
@@ -862,13 +904,41 @@ const ProjectView = ({ project, commits, onBack }) => {
 };
 
 export default function SolidWorksPDM() {
-  const [currentView, setCurrentView] = useState('home'); // 'home' or 'project'
+  const [currentView, setCurrentView] = useState('home');
   const [selectedProject, setSelectedProject] = useState(null);
+  const [projects, setProjects] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const handleOpenProject = (projectId) => {
-    const project = mockProjects.find(p => p.id === projectId);
-    setSelectedProject(project);
-    setCurrentView('project');
+  // Load projects on component mount
+  useEffect(() => {
+    loadProjects();
+  }, []);
+
+  const loadProjects = async () => {
+    try {
+      setIsLoading(true);
+      const projectsData = await apiService.getProjects();
+      setProjects(projectsData);
+      setError(null);
+    } catch (err) {
+      console.error('Failed to load projects:', err);
+      setError('Failed to load projects. Using offline mode.');
+      // Fallback to empty array if API fails
+      setProjects([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleOpenProject = async (projectId) => {
+    try {
+      const project = projects.find(p => p.id === projectId);
+      setSelectedProject(project);
+      setCurrentView('project');
+    } catch (err) {
+      console.error('Failed to open project:', err);
+    }
   };
 
   const handleBackToHome = () => {
@@ -876,21 +946,35 @@ export default function SolidWorksPDM() {
     setSelectedProject(null);
   };
 
-  const handleCreateProject = () => {
-    alert('Create new project - this will connect to SolidWorks plugin!');
+  const handleCreateProject = async () => {
+    const name = prompt('Enter project name:');
+    if (!name) return;
+    
+    const description = prompt('Enter project description (optional):') || '';
+    
+    try {
+      const newProject = await apiService.createProject({ name, description });
+      setProjects(prev => [...prev, newProject]);
+      alert(`Project "${newProject.name}" created successfully!`);
+    } catch (err) {
+      console.error('Failed to create project:', err);
+      alert('Failed to create project. Please try again.');
+    }
   };
 
   if (currentView === 'home') {
     return (
       <HomePage 
-        projects={mockProjects}
+        projects={projects}
         onOpenProject={handleOpenProject}
         onCreateProject={handleCreateProject}
+        isLoading={isLoading}
       />
     );
   }
 
   if (currentView === 'project' && selectedProject) {
+    // Get commits from API or fallback to mock data
     const commits = projectCommitData[selectedProject.id] || [];
     return (
       <ProjectView 
